@@ -1,0 +1,70 @@
+      ! vc-relax.in — Hg-1212, P = 15.0 GPa (150 kbar)
+      ! [PLACEHOLDER] atomic positions and lattice constants must be verified
+      ! [PLACEHOLDER] pseudopotentials must be downloaded before running
+      !
+      &CONTROL
+        calculation   = 'vc-relax'
+        restart_mode  = 'from_scratch'
+        prefix        = 'Hg1212_P150kbar'
+        outdir        = './out/'
+        pseudo_dir    = '../../data/pseudopotentials/'  ! [PLACEHOLDER] adjust path
+        verbosity     = 'high'
+        tprnfor       = .true.
+        tstress       = .true.
+        forc_conv_thr = 0.0001
+        nstep         = 100
+      /
+      &SYSTEM
+        ibrav         = 6           ! tetragonal P4/mmm (approximate) [PLACEHOLDER]
+        celldm(1)     = 7.233872   ! a [Bohr], P=15.0 GPa [ASSUMED linear EOS]
+        celldm(3)     = 4.077847   ! c/a ratio [ASSUMED]
+        nat           = 14
+        ntyp          = 5
+        ecutwfc       = 60.0   ! Ry [PLACEHOLDER — converge]
+        ecutrho       = 480.0   ! Ry [PLACEHOLDER — converge]
+        occupations   = 'smearing'
+        smearing      = 'mp'
+        degauss       = 0.005   ! Ry [PLACEHOLDER]
+        press         = 150.00    ! kbar (= 15.0 GPa × 10)
+        press_conv_thr= 0.1   ! kbar [PLACEHOLDER]
+      /
+      &ELECTRONS
+        conv_thr      = 1e-08
+        mixing_beta   = 0.4
+        mixing_mode   = 'plain'
+        electron_maxstep = 200
+      /
+      &IONS
+        ion_dynamics  = 'bfgs'
+      /
+      &CELL
+        cell_dynamics = 'bfgs'
+        cell_dofree   = 'ibrav'      ! keep tetragonal symmetry [PLACEHOLDER]
+        press         = 150.00
+        press_conv_thr= 0.1
+      /
+      ATOMIC_SPECIES
+        Hg    200.590   Hg.pbe-spd-kjpaw_psl.1.0.0.UPF
+Ba    137.330   Ba.pbe-spd-kjpaw_psl.1.0.0.UPF
+Cu    63.550    Cu.pbe-dn-kjpaw_psl.1.0.0.UPF
+O     16.000    O.pbe-n-kjpaw_psl.1.0.0.UPF
+Ca    40.080    Ca.pbe-spn-kjpaw_psl.1.0.0.UPF
+
+      K_POINTS automatic
+        8 8 4  0 0 0   ! [PLACEHOLDER — converge]
+
+      ATOMIC_POSITIONS crystal
+        Hg    0.000000  0.000000  0.000000
+Ba    0.500000  0.500000  0.185200
+Ba    0.500000  0.500000  -0.185200
+Ca    0.000000  0.000000  0.500000
+Cu    0.500000  0.000000  0.294000
+Cu    0.000000  0.500000  -0.294000
+O     0.500000  0.500000  0.000000
+O     0.500000  0.500000  0.000000
+O     0.500000  0.000000  0.310000
+O     0.000000  0.500000  0.310000
+O     0.500000  0.000000  -0.310000
+O     0.000000  0.500000  -0.310000
+O     0.500000  0.500000  0.440000
+O     0.500000  0.500000  -0.440000
