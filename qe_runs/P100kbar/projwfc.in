@@ -1,0 +1,14 @@
+! projwfc.in — Hg-1212, P = 10.0 GPa (100 kbar)
+! Run with: projwfc.x < projwfc.in > projwfc.out
+! Output: orbital-resolved PDOS per atom (Cu-d, O-p, etc.)
+!
+&PROJWFC
+  prefix    = 'Hg1212_P100kbar'
+  outdir    = './out/'
+  filpdos   = 'Hg1212_P100kbar.pdos'
+  Emin      = -10.0   ! eV [PLACEHOLDER]
+  Emax      =  10.0   ! eV [PLACEHOLDER]
+  DeltaE    =  0.01   ! eV [PLACEHOLDER]
+  degauss   = 0.005
+  lsym      = .true.   ! use symmetry for orbital projection
+/

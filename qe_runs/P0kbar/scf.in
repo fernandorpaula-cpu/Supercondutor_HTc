@@ -1,0 +1,57 @@
+      ! scf.in — Hg-1212, P = 0.0 GPa (0 kbar)
+      ! [PLACEHOLDER] use CELL_PARAMETERS from vc-relax output, not celldm
+      !
+      &CONTROL
+        calculation   = 'scf'
+        restart_mode  = 'from_scratch'
+        prefix        = 'Hg1212_P0kbar'
+        outdir        = './out/'
+        pseudo_dir    = '../../data/pseudopotentials/'  ! [PLACEHOLDER]
+        verbosity     = 'high'
+        tprnfor       = .true.
+        tstress       = .true.
+      /
+      &SYSTEM
+        ibrav         = 6           ! [PLACEHOLDER] replace with CELL_PARAMETERS if ibrav=0
+        celldm(1)     = 7.290563   ! [PLACEHOLDER — use vc-relax output]
+        celldm(3)     = 4.069466
+        nat           = 14
+        ntyp          = 5
+        ecutwfc       = 60.0
+        ecutrho       = 480.0
+        occupations   = 'smearing'
+        smearing      = 'mp'
+        degauss       = 0.005
+      /
+      &ELECTRONS
+        conv_thr      = 1e-08
+        mixing_beta   = 0.4
+        mixing_mode   = 'plain'
+        electron_maxstep = 200
+      /
+      ATOMIC_SPECIES
+        Hg    200.590   Hg.pbe-spd-kjpaw_psl.1.0.0.UPF
+Ba    137.330   Ba.pbe-spd-kjpaw_psl.1.0.0.UPF
+Cu    63.550    Cu.pbe-dn-kjpaw_psl.1.0.0.UPF
+O     16.000    O.pbe-n-kjpaw_psl.1.0.0.UPF
+Ca    40.080    Ca.pbe-spn-kjpaw_psl.1.0.0.UPF
+
+      K_POINTS automatic
+        8 8 4  0 0 0   ! [PLACEHOLDER]
+
+      ATOMIC_POSITIONS crystal
+      ! [PLACEHOLDER] copy ATOMIC_POSITIONS from vc-relax output
+        Hg    0.000000  0.000000  0.000000
+Ba    0.500000  0.500000  0.185200
+Ba    0.500000  0.500000  -0.185200
+Ca    0.000000  0.000000  0.500000
+Cu    0.500000  0.000000  0.294000
+Cu    0.000000  0.500000  -0.294000
+O     0.500000  0.500000  0.000000
+O     0.500000  0.500000  0.000000
+O     0.500000  0.000000  0.310000
+O     0.000000  0.500000  0.310000
+O     0.500000  0.000000  -0.310000
+O     0.000000  0.500000  -0.310000
+O     0.500000  0.500000  0.440000
+O     0.500000  0.500000  -0.440000

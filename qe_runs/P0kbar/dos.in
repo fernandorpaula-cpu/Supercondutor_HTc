@@ -1,0 +1,12 @@
+! dos.in — Hg-1212, P = 0.0 GPa (0 kbar)
+! Run with: dos.x < dos.in > dos.out
+!
+&DOS
+  prefix    = 'Hg1212_P0kbar'
+  outdir    = './out/'
+  fildos    = 'Hg1212_P0kbar.dos'
+  Emin      = -10.0   ! eV relative to Fermi level [PLACEHOLDER]
+  Emax      =  10.0   ! eV [PLACEHOLDER]
+  DeltaE    =  0.01   ! eV energy resolution [PLACEHOLDER]
+  degauss   = 0.005   ! Ry, match SCF [PLACEHOLDER]
+/
