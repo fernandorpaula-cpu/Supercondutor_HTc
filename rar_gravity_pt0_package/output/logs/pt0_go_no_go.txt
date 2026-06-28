@@ -1,0 +1,28 @@
+================ PT0 GO / NO-GO ================
+overall decision : NO-TARGET
+recommendation   : CANNOT DECIDE: no numeric Crespi targets present. Fill data/crespi_table4_targets.yaml with real Table 4 values, then re-run.
+
+error bands: err<=0.01 EXCELLENT | err<=0.03 GO | err<=0.10 BORDERLINE | err>0.10 NO-GO
+err = |model - target| / |target|
+
+--- case case_56keV (mc^2=56 keV) verdict=NO-TARGET converged=True ---
+    core_mass_msun                     model=  4.0750e+06 target=      ---    err=    ---    -> NO-TARGET
+    core_radius_pc                     model=  2.4637e-04 target=      ---    err=    ---    -> NO-TARGET
+    total_mass_msun                    model=  5.4434e+13 target=      ---    err=    ---    -> NO-TARGET
+    extended_mass_within_s2_msun       model=  3.9071e+06 target=      ---    err=    ---    -> NO-TARGET
+    s2_precession_arcmin_per_orbit     model=    -54.4776 target=      ---    err=    ---    -> NO-TARGET
+    note: theta0 not given -> shooting on central degeneracy
+    note: shoot core_mass_kg: theta0=21.5203, achieved=8.1030e+36 kg, rel_err=3.432e-10, converged=True
+    note: no numeric targets present -> cannot decide GO/NO-GO
+
+--- case case_300keV (mc^2=300 keV) verdict=NO-TARGET converged=False ---
+    core_mass_msun                     model=  2.9548e+06 target=      ---    err=    ---    -> NO-TARGET
+    core_radius_pc                     model=  1.2035e-06 target=      ---    err=    ---    -> NO-TARGET
+    total_mass_msun                    model=  7.0295e+06 target=      ---    err=    ---    -> NO-TARGET
+    extended_mass_within_s2_msun       model=  4.0747e+06 target=      ---    err=    ---    -> NO-TARGET
+    s2_precession_arcmin_per_orbit     model=    -50.4015 target=      ---    err=    ---    -> NO-TARGET
+    note: theta0 not given -> shooting on central degeneracy
+    note: shoot core_mass_kg: theta0=40.0000, achieved=5.8755e+36 kg, rel_err=2.749e-01, converged=False
+    note: no numeric targets present -> cannot decide GO/NO-GO
+
+================================================

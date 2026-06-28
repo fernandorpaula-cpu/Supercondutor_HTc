@@ -1,0 +1,85 @@
+# =====================================================================
+# Crespi et al. Table 4 — PT0 reference targets for the RAR model in Sgr A*
+# =====================================================================
+#
+#  >>> ACTION REQUIRED <<<
+#  The numeric `targets:` blocks below are PLACEHOLDERS marked
+#  [NEEDS_VERIFICATION].  They MUST be replaced with the real values from
+#  Crespi et al., Table 4, before any GO/NO-GO decision is scientifically
+#  meaningful.  The solver runs end-to-end regardless, but with `null`
+#  targets it will report NO-TARGET (it cannot, and will not, manufacture
+#  a GO from invented numbers — see the project prompt: "Não invente
+#  parâmetros ausentes").
+#
+#  UNITS (must be respected — see constants.py UNIT POLICY):
+#    mc2_keV                          : fermion rest energy           [keV]
+#    beta0  = kT0/(mc^2)              : central temperature param     [-]
+#    W0     = eps_c0/(kT0)            : central cutoff param          [-]
+#    theta0 = mu0/(kT0)              : central degeneracy (optional;  [-]
+#                                       omit to let the shooter solve it)
+#    targets.*_msun                   : masses                        [M_sun]
+#    targets.*_pc                     : radii                         [pc]
+#    targets.*_arcmin_per_orbit       : precession                    [arcmin/orbit]
+#
+#  Central (theta0, beta0, W0) are the *inputs* defining a configuration;
+#  the targets are the *outputs* to reproduce.  If Crespi's Table 4 gives
+#  a central density rho_c instead of theta0, use
+#  eos_fermion_cutoff.central_degeneracy_from_density() to convert.
+# =====================================================================
+
+meta:
+  source: "Crespi et al. (CITE FULL REFERENCE HERE) — Table 4"
+  model: "Ruffini-Arguelles-Rueda (RAR) fermionic dark matter, with cutoff"
+  object: "Sgr A* (Galactic Centre)"
+  gravity_2024_extended_mass_1sigma_msun: 1200.0   # [LIT] upper-ish 1-sigma, compatible with 0
+  status: "TEMPLATE — targets are placeholders pending real Table 4 numbers"
+
+# S2 orbital elements used for the observables (override per-case if needed).
+s2_orbit:
+  semimajor_axis_au: 1020.0     # [LIT] GRAVITY (~0.1255 arcsec)
+  eccentricity: 0.8843          # [LIT] GRAVITY
+  period_yr: 16.05              # [LIT] GRAVITY
+
+cases:
+
+  case_56keV:
+    mc2_keV: 56.0
+    # --- central configuration parameters [EST: order-of-magnitude RAR core] ---
+    # beta0 calibrated so the 4.075e6 Msun core sits on the monotonic
+    # rising branch of core_mass(theta0); see DELIVERY_NOTES.md.
+    beta0: 5.0e-5              # cold, strongly degenerate core
+    W0: 60.0                    # cutoff depth (controls halo truncation)
+    # theta0 omitted -> solved by shooting on the core mass below.
+    shoot:
+      observable: core_mass_kg
+      target_msun: 4.075e6      # [LIT] ~4.1e6 M_sun Sgr A* compact-source mass
+      theta_bracket: [12.0, 30.0]
+    # --- Crespi Table 4 reference outputs to reproduce ---
+    targets:
+      core_mass_msun: null                      # [NEEDS_VERIFICATION]
+      core_radius_pc: null                      # [NEEDS_VERIFICATION]
+      total_mass_msun: null                     # [NEEDS_VERIFICATION]
+      extended_mass_within_s2_msun: null        # [NEEDS_VERIFICATION] (expected >> 1200)
+      s2_precession_arcmin_per_orbit: null      # [NEEDS_VERIFICATION]
+
+  case_300keV:
+    mc2_keV: 300.0
+    # NOTE: in this truncated family the 300 keV degenerate core saturates
+    # near a critical (turning-point) mass ~3.1e6 Msun at beta0~8e-3, BELOW
+    # the 4.075e6 Msun target.  The shooter therefore reports converged=False
+    # and returns the closest config.  This is an honest physical ceiling of
+    # the placeholder parametrisation, NOT a numerical failure; the real
+    # Crespi central params (or a near-OV-critical branch) are required to
+    # land exactly on 4.075e6.  See DELIVERY_NOTES.md.
+    beta0: 8.0e-3
+    W0: 60.0
+    shoot:
+      observable: core_mass_kg
+      target_msun: 4.075e6      # [LIT]
+      theta_bracket: [10.0, 40.0]
+    targets:
+      core_mass_msun: null                      # [NEEDS_VERIFICATION]
+      core_radius_pc: null                      # [NEEDS_VERIFICATION]
+      total_mass_msun: null                     # [NEEDS_VERIFICATION]
+      extended_mass_within_s2_msun: null        # [NEEDS_VERIFICATION] (expected << 56 keV case)
+      s2_precession_arcmin_per_orbit: null      # [NEEDS_VERIFICATION]
