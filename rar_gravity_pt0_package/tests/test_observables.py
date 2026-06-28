@@ -63,3 +63,24 @@ def test_rel_error_formula():
     assert _rel_error(110.0, 100.0) == pytest.approx(0.10)
     assert _rel_error(100.0, None) is None
     assert _rel_error(100.0, 0.0) is None
+
+
+def test_shoot_parameter_rejects_bad_knob():
+    from rar_gravity_pt0.shooting import shoot_parameter
+    from rar_gravity_pt0.rar_tov_solver import CentralParams
+    base = CentralParams(20.0, 5e-5, 60.0, M56)
+    with pytest.raises(ValueError):
+        shoot_parameter(base, "W0", "core_mass_kg", 1e36, bracket=(1, 2))
+
+
+def test_shoot_theta_via_general_api_converges():
+    # the general API must reproduce the backward-compatible theta0 shoot
+    from rar_gravity_pt0.shooting import shoot_parameter
+    from rar_gravity_pt0.rar_tov_solver import CentralParams
+    from rar_gravity_pt0.constants import msun_to_kg, kg_to_msun
+    base = CentralParams(20.0, 5e-5, 60.0, M56)
+    res = shoot_parameter(base, "theta0", "core_mass_kg",
+                          msun_to_kg(4.0e6), bracket=(12.0, 30.0))
+    assert res.converged
+    assert kg_to_msun(res.achieved_value) == pytest.approx(4.0e6, rel=1e-3)
+    assert res.branch_max is None

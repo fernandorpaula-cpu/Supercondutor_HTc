@@ -38,7 +38,7 @@ density `ρ_c`) and re-run `python scripts/run_pt0_validate.py --case all`.
 | 1. Baseline | `scripts/run_emulator_baseline.py` | ✅ runs, prints EOS+TOV+obs |
 | 2. EOS | `src/.../eos_fermion_cutoff.py` | ✅ truncated relativistic Fermi-Dirac integrals (ρ_E, ρ, P, n), SI, documented |
 | 3. TOV/RAR | `rar_tov_solver.py` | ✅ produces `r_m, mass_kg, rho_kg_m3, pressure_pa, nu_metric, lambda_metric` |
-| 3. Shooting | `shooting.py` | ✅ BVP solve on central degeneracy θ₀ (not interpolation) |
+| 3. Shooting | `shooting.py` | ✅ BVP solve on **θ₀ or β₀** (not interpolation); auto-detects turning-point ceiling |
 | 4. Mass | `mass_profile.py` | ✅ extended mass within S2 |
 | 4. Precession | `precession.py` | ✅ Schwarzschild (prograde) + extended-mass (retrograde) per orbit |
 | 4. Orbit | `orbit_s2.py` | ✅ S2 elements + observable bundling |
@@ -68,13 +68,14 @@ Command: `python scripts/run_pt0_validate.py --case all`
 
 | observable | unit | 56 keV | 300 keV | target |
 |---|---|---|---|---|
-| shooting converged | – | **True** | **False** (ceiling) | – |
-| θ₀ (shot) | – | 21.52 | 40.0 (bracket cap) | – |
-| core mass | M☉ | **4.075×10⁶** (err 3e-10) | 2.95×10⁶ (err 0.275) | 4.075×10⁶\* |
-| core radius | pc | 2.46×10⁻⁴ | 1.20×10⁻⁶ | null |
-| total mass (to truncation) | M☉ | 5.4×10¹³ † | 7.0×10⁶ † | null |
-| **extended mass within S2** | M☉ | **3.9×10⁶** | 4.1×10⁶ | null |
-| S2 precession | arcmin/orbit | −54.5 | −50.4 | null |
+| shoot knob | – | θ₀ | β₀ (degenerate branch) | – |
+| shooting converged | – | **True** | **False** (hit ceiling) | – |
+| shot value | – | θ₀=21.52 | β₀=4.98×10⁻³ | – |
+| core mass | M☉ | **4.075×10⁶** (err 2e-5) | **3.165×10⁶** = branch max | 4.075×10⁶\* |
+| core radius | pc | 2.46×10⁻⁴ | 1.64×10⁻⁶ | null |
+| total mass (to truncation) | M☉ | 5.4×10¹³ † | 6.8×10⁶ † | null |
+| **extended mass within S2** | M☉ | **3.9×10⁶** | 3.6×10⁶ | null |
+| S2 precession | arcmin/orbit | −54.5 | −49.8 | null |
 
 \* core-mass shoot target (the ~4.1×10⁶ M☉ Sgr A\* compact source), `[LIT]`.
 † **not calibrated** to the Milky Way halo (real ≈ a few ×10⁶ core to
@@ -87,13 +88,16 @@ placeholder artifact.
    precision (rel_err ~3×10⁻¹⁰) by varying θ₀ alone — this is a genuine
    structural solve, not interpolation.
 
-2. **A real physical ceiling for 300 keV.** In this truncated family the
-   300 keV degenerate core **saturates near a critical (turning-point) mass
-   ~3.1×10⁶ M☉** — it cannot be pushed to 4.075×10⁶ M☉ by raising θ₀, β₀ or
-   W₀ (verified by a parameter scan). The solver therefore returns
-   `converged=False` and the closest config, **honestly**, instead of
+2. **A real physical ceiling for 300 keV, now auto-quantified.** Shooting
+   along the degenerate branch in **β₀** (the generalisation added on
+   request), the 300 keV core mass reaches a **critical (turning-point)
+   maximum M_crit = 3.165×10⁶ M☉ at β₀ = 4.98×10⁻³** — it cannot be pushed
+   to 4.075×10⁶ M☉ by any of θ₀, β₀ or W₀ (verified by scan and by the
+   built-in turning-point detector). The solver returns `converged=False`,
+   the closest config, **and the branch maximum it found**, instead of
    faking it. Whether the true Crespi 300 keV core sits above or below this
    ceiling is exactly what the real Table 4 / central parameters will decide.
+   (`shooting.py` reports: `target ABOVE branch maximum 3.165e6 Msun`.)
 
 3. **The qualitative core-halo distinction is partially captured**: the
    300 keV core is ~200× more compact than the 56 keV core
@@ -143,9 +147,12 @@ yet the published one.
 2. Real **central parameters** `θ₀, β₀, W₀` (or central density `ρ_c`,
    convertible via `eos_fermion_cutoff.central_degeneracy_from_density`).
 3. Re-run `python scripts/run_pt0_validate.py --case all`.
-4. If the 300 keV target core mass exceeds the ~3.1×10⁶ M☉ ceiling seen
-   here, switch the shoot variable to β₀ (temperature) along the degenerate
-   branch — a one-line generalisation of `shooting.py`.
+4. β₀-shooting along the degenerate branch is now implemented
+   (`shoot.parameter: beta0` in the YAML). If the real 300 keV target core
+   mass exceeds the ~3.17×10⁶ M☉ ceiling found here, that means the
+   placeholder W₀/EOS-truncation must change (deeper cutoff or a different
+   core definition closer to the OV-critical configuration) — the branch
+   maximum is a property of the (W₀, m) family, not of the solver.
 
 ---
 

@@ -5,22 +5,36 @@ The RAR/TOV integrator (`rar_tov_solver.solve_profile`) takes the central
 parameters (theta0, beta0, W0, m) and returns a full profile.  For the
 PT0 reproduction we must instead hit *physical targets* (e.g. a total /
 core mass of ~ 4e6 M_sun for Sgr A*).  This module performs the outer
-shooting: it varies one central parameter until a chosen scalar
-observable of the profile matches a target value.
+shooting: it varies ONE central parameter (``theta0`` or ``beta0``) until
+a chosen scalar observable of the profile matches a target value.
 
-This is a genuine boundary-value solve (Newton/bisection on the central
+This is a genuine boundary-value solve (bisection on the central
 parameter), NOT an interpolation between the 56 keV and 300 keV cases.
 The prompt explicitly forbids the interpolation shortcut.
+
+Which knob to vary
+------------------
+* ``theta0`` (central degeneracy): controls the core mass on the rising,
+  NON-degenerate branch, but the core mass *saturates* once the core is
+  fully degenerate -> use when the target sits below that plateau.
+* ``beta0``  (central temperature parameter kT0/mc^2): moves the core
+  along the degenerate branch up to the relativistic turning point
+  (an OV-like maximum mass).  Use when ``theta0`` saturates below target.
+  NOTE: beyond the turning point the core mass *decreases*; if the target
+  exceeds the branch maximum the solve cannot bracket it and is honestly
+  reported as ``converged=False`` (we return the closest config, never a
+  fabricated success).
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Callable
+from dataclasses import dataclass, replace
 
 import numpy as np
-from scipy.optimize import brentq
+from scipy.optimize import brentq, minimize_scalar
 
 from .rar_tov_solver import CentralParams, Profile, solve_profile, core_radius_m
+
+SHOOTABLE = ("theta0", "beta0")
 
 
 @dataclass
@@ -35,6 +49,7 @@ class ShootingResult:
     rel_error: float
     converged: bool
     n_iter: int
+    branch_max: float | None = None   # branch maximum found (if target > max)
 
 
 def _profile_observable(profile: Profile, name: str) -> float:
@@ -48,55 +63,84 @@ def _profile_observable(profile: Profile, name: str) -> float:
     raise ValueError(f"unknown shooting observable {name!r}")
 
 
+def _with_param(base: CentralParams, parameter: str, value: float) -> CentralParams:
+    if parameter not in SHOOTABLE:
+        raise ValueError(f"parameter must be one of {SHOOTABLE}, got {parameter!r}")
+    return replace(base, **{parameter: value})
+
+
+def shoot_parameter(base: CentralParams, parameter: str,
+                    target_name: str, target_value: float,
+                    bracket: tuple[float, float],
+                    solver_kwargs: dict | None = None,
+                    xtol: float | None = None,
+                    max_iter: int = 100) -> ShootingResult:
+    """Vary ``parameter`` (theta0 or beta0) of ``base`` until
+    ``target_name`` matches ``target_value``.
+
+    Robust to a non-monotonic (turning-point) response: if the target is
+    not bracketed, we locate the branch maximum of the observable over the
+    bracket and report ``converged=False`` with that maximum, so a target
+    above the physical ceiling is flagged rather than silently faked.
+    """
+    solver_kwargs = solver_kwargs or {}
+    n_calls = {"n": 0}
+    lo, hi = bracket
+    if xtol is None:
+        xtol = 1e-4 * max(abs(lo), abs(hi), 1.0)
+
+    def make_profile(val: float) -> Profile:
+        return solve_profile(_with_param(base, parameter, val), **solver_kwargs)
+
+    def obs(val: float) -> float:
+        n_calls["n"] += 1
+        return _profile_observable(make_profile(val), target_name)
+
+    def resid(val: float) -> float:
+        return obs(val) - target_value
+
+    flo, fhi = resid(lo), resid(hi)
+
+    if flo * fhi <= 0:
+        # standard bracketed root
+        sol = brentq(resid, lo, hi, xtol=xtol, maxiter=max_iter)
+        prof = make_profile(sol)
+        achieved = _profile_observable(prof, target_name)
+        return ShootingResult(
+            central_params=_with_param(base, parameter, sol),
+            profile=prof, shot_parameter=parameter, shot_value=sol,
+            target_name=target_name, target_value=target_value,
+            achieved_value=achieved,
+            rel_error=abs(achieved - target_value) / abs(target_value),
+            converged=True, n_iter=n_calls["n"])
+
+    # not bracketed: find the branch MAXIMUM of the observable to report the
+    # physical ceiling honestly (maximise obs == minimise -obs).
+    res = minimize_scalar(lambda v: -obs(v), bounds=(lo, hi), method="bounded",
+                          options={"xatol": xtol})
+    v_max = float(res.x)
+    branch_max = -float(res.fun)
+    prof = make_profile(v_max)
+    achieved = _profile_observable(prof, target_name)
+    return ShootingResult(
+        central_params=_with_param(base, parameter, v_max),
+        profile=prof, shot_parameter=parameter, shot_value=v_max,
+        target_name=target_name, target_value=target_value,
+        achieved_value=achieved,
+        rel_error=abs(achieved - target_value) / abs(target_value),
+        converged=False, n_iter=n_calls["n"], branch_max=branch_max)
+
+
 def shoot_central_theta(beta0: float, W0: float, m_kg: float,
                         target_name: str, target_value: float,
                         theta_bracket=(5.0, 80.0),
                         solver_kwargs: dict | None = None,
                         xtol: float = 1e-4,
                         max_iter: int = 100) -> ShootingResult:
-    """Vary the central degeneracy theta0 until `target_name` matches
-    `target_value`.
-
-    theta0 controls how degenerate (and therefore how massive/compact) the
-    fermion core is, so the chosen observable is monotonic in theta0 over a
-    sensible range, making bisection robust.
-    """
-    solver_kwargs = solver_kwargs or {}
-    n_calls = {"n": 0}
-
-    def make_profile(theta0: float) -> Profile:
-        cp = CentralParams(theta0=theta0, beta0=beta0, W0=W0, m_kg=m_kg)
-        return solve_profile(cp, **solver_kwargs)
-
-    def resid(theta0: float) -> float:
-        n_calls["n"] += 1
-        prof = make_profile(theta0)
-        return _profile_observable(prof, target_name) - target_value
-
-    lo, hi = theta_bracket
-    flo, fhi = resid(lo), resid(hi)
-    if flo * fhi > 0:
-        # not bracketed: return the closest endpoint, flagged not-converged
-        theta_best = lo if abs(flo) < abs(fhi) else hi
-        prof = make_profile(theta_best)
-        achieved = _profile_observable(prof, target_name)
-        return ShootingResult(
-            central_params=CentralParams(theta_best, beta0, W0, m_kg),
-            profile=prof, shot_parameter="theta0", shot_value=theta_best,
-            target_name=target_name, target_value=target_value,
-            achieved_value=achieved,
-            rel_error=abs(achieved - target_value) / abs(target_value),
-            converged=False, n_iter=n_calls["n"],
-        )
-
-    theta_sol = brentq(resid, lo, hi, xtol=xtol, maxiter=max_iter)
-    prof = make_profile(theta_sol)
-    achieved = _profile_observable(prof, target_name)
-    return ShootingResult(
-        central_params=CentralParams(theta_sol, beta0, W0, m_kg),
-        profile=prof, shot_parameter="theta0", shot_value=theta_sol,
-        target_name=target_name, target_value=target_value,
-        achieved_value=achieved,
-        rel_error=abs(achieved - target_value) / abs(target_value),
-        converged=True, n_iter=n_calls["n"],
-    )
+    """Backward-compatible wrapper: shoot on the central degeneracy theta0."""
+    base = CentralParams(theta0=float(np.mean(theta_bracket)),
+                         beta0=beta0, W0=W0, m_kg=m_kg)
+    return shoot_parameter(base, "theta0", target_name, target_value,
+                           bracket=tuple(theta_bracket),
+                           solver_kwargs=solver_kwargs, xtol=xtol,
+                           max_iter=max_iter)

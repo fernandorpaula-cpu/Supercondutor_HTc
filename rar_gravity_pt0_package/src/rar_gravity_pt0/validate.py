@@ -27,7 +27,7 @@ from .constants import (KEV, fermion_mass_kg, msun_to_kg, mpc_to_m, pc_to_m,
                         AU, YEAR)
 from .orbit_s2 import S2Orbit, s2_observables
 from .rar_tov_solver import CentralParams, core_radius_m, solve_profile
-from .shooting import shoot_central_theta
+from .shooting import shoot_parameter
 
 EXCELLENT, GO, BORDERLINE, NOGO, NOTARGET = (
     "EXCELLENT", "GO", "BORDERLINE", "NO-GO", "NO-TARGET")
@@ -108,21 +108,28 @@ def run_case(case_id: str, case: dict, solver_kwargs: dict | None = None) -> Cas
     shoot_target = case.get("shoot", None)
     if shoot_target is not None:
         tname = shoot_target["observable"]          # e.g. core_mass_kg
-        # target value in M_sun in the YAML -> kg
         tval = msun_to_kg(float(shoot_target["target_msun"]))
-        res = shoot_central_theta(
-            beta0=cp.beta0, W0=cp.W0, m_kg=cp.m_kg,
+        # which central knob to vary: theta0 (default) or beta0
+        parameter = shoot_target.get("parameter", "theta0")
+        # accept either `bracket` or the legacy `theta_bracket`
+        bracket = tuple(shoot_target.get(
+            "bracket", shoot_target.get("theta_bracket", (5.0, 80.0))))
+        res = shoot_parameter(
+            base=cp, parameter=parameter,
             target_name=tname, target_value=tval,
-            theta_bracket=tuple(shoot_target.get("theta_bracket", (5.0, 80.0))),
-            solver_kwargs=solver_kwargs,
+            bracket=bracket, solver_kwargs=solver_kwargs,
         )
         cp = res.central_params
         profile = res.profile
         converged = res.converged
-        notes.append(
-            f"shoot {tname}: theta0={cp.theta0:.4f}, "
-            f"achieved={res.achieved_value:.4e} kg, "
-            f"rel_err={res.rel_error:.3e}, converged={res.converged}")
+        note = (f"shoot {parameter} -> {tname}: "
+                f"{parameter}={getattr(cp, parameter):.4e}, "
+                f"achieved={res.achieved_value:.4e} kg, "
+                f"rel_err={res.rel_error:.3e}, converged={res.converged}")
+        if res.branch_max is not None:
+            note += (f"; target ABOVE branch maximum "
+                     f"{res.branch_max:.4e} kg ({res.branch_max/msun_to_kg(1.0):.3e} Msun)")
+        notes.append(note)
     else:
         profile = solve_profile(cp, **solver_kwargs)
 

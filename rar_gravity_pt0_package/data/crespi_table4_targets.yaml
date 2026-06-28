@@ -64,19 +64,22 @@ cases:
 
   case_300keV:
     mc2_keV: 300.0
-    # NOTE: in this truncated family the 300 keV degenerate core saturates
-    # near a critical (turning-point) mass ~3.1e6 Msun at beta0~8e-3, BELOW
-    # the 4.075e6 Msun target.  The shooter therefore reports converged=False
-    # and returns the closest config.  This is an honest physical ceiling of
-    # the placeholder parametrisation, NOT a numerical failure; the real
-    # Crespi central params (or a near-OV-critical branch) are required to
-    # land exactly on 4.075e6.  See DELIVERY_NOTES.md.
-    beta0: 8.0e-3
+    # The 300 keV degenerate core has a CRITICAL (turning-point) mass.  We
+    # therefore shoot along the degenerate branch in beta0 at fixed,
+    # degenerate theta0.  In this truncated family (W0=60) the branch
+    # maximum is M_crit ~ 3.17e6 Msun (at beta0 ~ 5e-3), BELOW the 4.075e6
+    # Msun target -> the shooter reports converged=False AND prints the
+    # branch maximum it found.  This is an honest physical ceiling of the
+    # PLACEHOLDER parametrisation, not a numerical failure; the real Crespi
+    # central params are required to land exactly on 4.075e6.
+    theta0: 40.0               # held fixed (degenerate core)
     W0: 60.0
+    beta0: 5.0e-3              # starting guess; overridden by the shoot below
     shoot:
+      parameter: beta0         # vary central temperature along degenerate branch
       observable: core_mass_kg
       target_msun: 4.075e6      # [LIT]
-      theta_bracket: [10.0, 40.0]
+      bracket: [1.0e-3, 3.0e-2]
     targets:
       core_mass_msun: null                      # [NEEDS_VERIFICATION]
       core_radius_pc: null                      # [NEEDS_VERIFICATION]

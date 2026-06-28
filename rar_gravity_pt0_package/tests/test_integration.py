@@ -42,3 +42,7 @@ def test_no_fabricated_go_without_targets():
     res = run_case("case_300keV", spec["cases"]["case_300keV"])
     # honest reporting: no targets -> cannot be EXCELLENT/GO
     assert res.verdict == "NO-TARGET"
+    # 300 keV shoots beta0 and hits the critical-mass ceiling -> non-converged,
+    # and the branch maximum must be reported (no silent failure / fake GO)
+    assert res.converged is False
+    assert any("branch maximum" in n for n in res.notes), res.notes
